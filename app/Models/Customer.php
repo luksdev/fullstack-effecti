@@ -6,9 +6,10 @@ use App\Enums\CustomerStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'document', 'email', 'status'])]
+#[Fillable(['name', 'federal_document', 'email', 'status'])]
 class Customer extends Model
 {
     use HasUuids, SoftDeletes;
@@ -23,5 +24,10 @@ class Customer extends Model
         return [
             'status' => CustomerStatus::class,
         ];
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
     }
 }
