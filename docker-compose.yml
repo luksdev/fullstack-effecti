@@ -26,7 +26,7 @@ services:
       POSTGRES_USER: effecti
       POSTGRES_PASSWORD: secret
     volumes:
-      - pgsql-data:/var/lib/postgresql/data
+      - pgsql-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U effecti -d teste_effecti"]
       interval: 5s
