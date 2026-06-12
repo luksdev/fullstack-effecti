@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      pgsql:
+        condition: service_healthy
+  vite:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+  pgsql:
+    image: postgres:18-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: teste_effecti
+      POSTGRES_USER: effecti
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgsql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U effecti -d teste_effecti"]
+      interval: 5s
+      retries: 5
+volumes:
+  pgsql-data:
