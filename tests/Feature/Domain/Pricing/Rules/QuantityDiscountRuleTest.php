@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Domain\Pricing;
+namespace Tests\Feature\Domain\Pricing\Rules;
 
 use App\Domain\Pricing\DTOs\PricingResult;
 use App\Domain\Pricing\Rules\QuantityDiscountRule;
