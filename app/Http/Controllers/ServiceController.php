@@ -34,7 +34,8 @@ class ServiceController extends Controller
     {
         Service::create($request->validated());
 
-        return to_route('services.index');
+        return to_route('services.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Serviço criado.']);
     }
 
     public function edit(Service $service): Response
@@ -48,13 +49,15 @@ class ServiceController extends Controller
     {
         $service->update($request->validated());
 
-        return to_route('services.index');
+        return to_route('services.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Serviço atualizado.']);
     }
 
     public function destroy(Service $service): RedirectResponse
     {
         $service->delete();
 
-        return to_route('services.index');
+        return to_route('services.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Serviço excluído.']);
     }
 }

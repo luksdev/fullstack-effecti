@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,9 +41,11 @@ const props = defineProps<{
     statuses: { value: string; label: string }[];
 }>();
 
-const editing = props.contract !== null;
-const record = props.contract?.data ?? null;
-const isCancelled = computed(() => record?.status.value === 'cancelled');
+// Computed so the page stays reactive when Inertia refreshes props after
+// creating the contract or adding/removing items (the same Form component is reused).
+const record = computed(() => props.contract?.data ?? null);
+const editing = computed(() => props.contract !== null);
+const isCancelled = computed(() => record.value?.status.value === 'cancelled');
 
 defineOptions({
     layout: {
@@ -52,15 +54,17 @@ defineOptions({
 });
 
 const form = useForm({
-    customer_id: record?.customer_id ?? '',
-    start_date: record?.start_date ?? '',
-    end_date: record?.end_date ?? '',
-    status: record?.status.value ?? 'active',
+    customer_id: record.value?.customer_id ?? '',
+    start_date: record.value?.start_date ?? '',
+    end_date: record.value?.end_date ?? '',
+    status: record.value?.status.value ?? 'active',
 });
 
 function submit(): void {
-    if (editing && record) {
-        form.put(`/contracts/${record.id}`);
+    const current = record.value;
+
+    if (current) {
+        form.put(`/contracts/${current.id}`);
     } else {
         form.post('/contracts');
     }
@@ -72,8 +76,29 @@ const itemForm = useForm({
     unit_price: '',
 });
 
+// Prefill the unit price with the selected service's base price so the field is
+// visible and editable; leaving it untouched still freezes that value on the backend.
+watch(
+    () => itemForm.service_id,
+    (serviceId) => {
+        const service = props.services.data.find(
+            (item) => item.id === serviceId,
+        );
+        itemForm.unit_price = service?.base_price ?? '';
+    },
+);
+
+const itemPreviewTotal = computed(() => {
+    const price =
+        parseFloat(String(itemForm.unit_price).replace(',', '.')) || 0;
+
+    return (price * (itemForm.quantity || 0)).toFixed(2);
+});
+
 function addItem(): void {
-    if (!record) {
+    const current = record.value;
+
+    if (!current) {
         return;
     }
 
@@ -90,14 +115,19 @@ function addItem(): void {
                   ),
     }));
 
-    itemForm.post(`/contracts/${record.id}/items`, {
+    itemForm.post(`/contracts/${current.id}/items`, {
+        preserveScroll: true,
         onSuccess: () => itemForm.reset(),
     });
 }
 
 function removeItem(item: Item): void {
-    if (record) {
-        router.delete(`/contracts/${record.id}/items/${item.id}`);
+    const current = record.value;
+
+    if (current) {
+        router.delete(`/contracts/${current.id}/items/${item.id}`, {
+            preserveScroll: true,
+        });
     }
 }
 </script>
@@ -143,7 +173,10 @@ function removeItem(item: Item): void {
             </div>
 
             <div class="grid gap-2">
-                <Label for="end_date">Data de fim</Label>
+                <Label for="end_date">
+                    Data de fim
+                    <span class="text-muted-foreground">(opcional)</span>
+                </Label>
                 <Input id="end_date" type="date" v-model="form.end_date" />
                 <InputError :message="form.errors.end_date" />
             </div>
@@ -272,6 +305,12 @@ function removeItem(item: Item): void {
                         placeholder="base do serviço"
                     />
                     <InputError :message="itemForm.errors.unit_price" />
+                </div>
+                <div class="grid gap-1">
+                    <Label>Total do item (R$)</Label>
+                    <span class="flex h-9 items-center text-sm font-medium"
+                        >R$ {{ itemPreviewTotal }}</span
+                    >
                 </div>
                 <Button type="submit" :disabled="itemForm.processing"
                     >Adicionar item</Button
