@@ -26,7 +26,7 @@ it('lists contracts with their calculated total', function () {
     $this->get(route('contracts.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('contracts/Index', false)
+            ->component('contracts/Index')
             ->has('contracts.data', 1)
             ->where('contracts.data.0.pricing.total', '450.00')
         );

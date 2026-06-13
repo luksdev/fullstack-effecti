@@ -18,7 +18,7 @@ it('lists customers', function () {
     $this->get(route('customers.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('customers/Index', false)
+            ->component('customers/Index')
             ->has('customers.data', 3)
         );
 });
