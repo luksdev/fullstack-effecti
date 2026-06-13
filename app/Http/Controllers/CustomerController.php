@@ -36,7 +36,8 @@ class CustomerController extends Controller
     {
         Customer::create($request->validated());
 
-        return to_route('customers.index');
+        return to_route('customers.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Cliente criado.']);
     }
 
     public function edit(Customer $customer): Response
@@ -51,14 +52,16 @@ class CustomerController extends Controller
     {
         $customer->update($request->validated());
 
-        return to_route('customers.index');
+        return to_route('customers.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Cliente atualizado.']);
     }
 
     public function destroy(Customer $customer): RedirectResponse
     {
         $customer->delete();
 
-        return to_route('customers.index');
+        return to_route('customers.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Cliente excluído.']);
     }
 
     /**

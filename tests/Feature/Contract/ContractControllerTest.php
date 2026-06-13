@@ -44,6 +44,7 @@ it('creates a contract and redirects to edit', function () {
 
     $contract = Contract::firstOrFail();
     $response->assertRedirect(route('contracts.edit', $contract));
+    $response->assertSessionHas('toast');
     $this->assertDatabaseHas('contracts', ['customer_id' => $customer->id]);
 });
 

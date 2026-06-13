@@ -47,7 +47,8 @@ class ContractController extends Controller
     {
         $contract = Contract::create($request->validated());
 
-        return to_route('contracts.edit', $contract);
+        return to_route('contracts.edit', $contract)
+            ->with('toast', ['type' => 'success', 'message' => 'Contrato criado. Adicione os itens abaixo.']);
     }
 
     public function edit(Contract $contract): Response
@@ -68,14 +69,16 @@ class ContractController extends Controller
 
         $contract->update($request->validated());
 
-        return to_route('contracts.index');
+        return to_route('contracts.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Contrato atualizado.']);
     }
 
     public function destroy(Contract $contract): RedirectResponse
     {
         $contract->delete();
 
-        return to_route('contracts.index');
+        return to_route('contracts.index')
+            ->with('toast', ['type' => 'success', 'message' => 'Contrato excluído.']);
     }
 
     public function storeItem(StoreContractItemRequest $request, Contract $contract, ContractItemService $service): RedirectResponse
@@ -84,7 +87,8 @@ class ContractController extends Controller
 
         $service->addItem($contract, $request->validated());
 
-        return to_route('contracts.edit', $contract);
+        return to_route('contracts.edit', $contract)
+            ->with('toast', ['type' => 'success', 'message' => 'Item adicionado ao contrato.']);
     }
 
     public function destroyItem(Contract $contract, ContractItem $item): RedirectResponse
@@ -95,7 +99,8 @@ class ContractController extends Controller
 
         $item->delete();
 
-        return to_route('contracts.edit', $contract);
+        return to_route('contracts.edit', $contract)
+            ->with('toast', ['type' => 'success', 'message' => 'Item removido do contrato.']);
     }
 
     /**
