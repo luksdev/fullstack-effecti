@@ -10,6 +10,7 @@ use App\Models\Contract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class ContractController extends Controller
 {
@@ -39,6 +40,8 @@ class ContractController extends Controller
 
     public function update(UpdateContractRequest $request, Contract $contract): ContractResource
     {
+        Gate::authorize('update', $contract);
+
         $contract->update($request->validated());
 
         return new ContractResource($contract->load(['customer', 'contractItems.service']));

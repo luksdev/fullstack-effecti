@@ -15,6 +15,7 @@ use App\Models\Customer;
 use App\Models\Service;
 use App\Services\ContractItemService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -63,6 +64,8 @@ class ContractController extends Controller
 
     public function update(UpdateContractRequest $request, Contract $contract): RedirectResponse
     {
+        Gate::authorize('update', $contract);
+
         $contract->update($request->validated());
 
         return to_route('contracts.index');
@@ -77,6 +80,8 @@ class ContractController extends Controller
 
     public function storeItem(StoreContractItemRequest $request, Contract $contract, ContractItemService $service): RedirectResponse
     {
+        Gate::authorize('addItem', $contract);
+
         $service->addItem($contract, $request->validated());
 
         return to_route('contracts.edit', $contract);
@@ -84,6 +89,8 @@ class ContractController extends Controller
 
     public function destroyItem(Contract $contract, ContractItem $item): RedirectResponse
     {
+        Gate::authorize('removeItem', $contract);
+
         abort_unless($item->contract_id === $contract->id, 404);
 
         $item->delete();
