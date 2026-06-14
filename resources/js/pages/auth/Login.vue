@@ -59,17 +59,6 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <div class="flex items-center justify-between">
-                    <Label for="password">Senha</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        Esqueceu sua senha?
-                    </TextLink>
-                </div>
                 <PasswordInput
                     id="password"
                     name="password"
