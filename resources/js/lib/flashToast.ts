@@ -7,12 +7,19 @@ export function initializeFlashToast(): void {
     // toast into the shared `flash` prop, only present right after a redirect.
     router.on('success', (event) => {
         const page = (event as CustomEvent).detail?.page;
-        const data = page?.props?.flash?.toast as FlashToast | undefined;
+        const flash = page?.props?.flash as
+            | { toast?: FlashToast | null }
+            | undefined;
+        const data = flash?.toast;
 
         if (!data) {
             return;
         }
 
         toast[data.type](data.message);
+
+        // Partial reloads (e.g. index filters) don't refresh the `flash` prop, so the
+        // stale toast would re-fire on the next visit; clear it once it has been shown.
+        flash.toast = null;
     });
 }
