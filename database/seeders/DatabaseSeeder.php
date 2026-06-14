@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,14 +16,24 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * Idempotent so it can run on every container boot without duplicating data.
      */
     public function run(): void
     {
         // Demo account used to pre-fill the login screen.
-        User::factory()->create([
-            'name' => 'Administrador',
-            'email' => 'admin@effecti.com',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@effecti.com'],
+            [
+                'name' => 'Administrador',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ],
+        );
+
+        if (Customer::query()->exists()) {
+            return;
+        }
 
         $customers = Customer::factory()->count(5)->create();
         $services = Service::factory()->count(5)->create();
