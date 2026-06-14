@@ -5,7 +5,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::redirect('/', 'dashboard')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
@@ -17,5 +17,3 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('contracts/{contract}/items', [ContractController::class, 'storeItem'])->name('contracts.items.store');
     Route::delete('contracts/{contract}/items/{item}', [ContractController::class, 'destroyItem'])->name('contracts.items.destroy');
 });
-
-require __DIR__.'/settings.php';
