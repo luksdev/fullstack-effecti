@@ -32,6 +32,7 @@ services:
       POSTGRES_PASSWORD: secret
     volumes:
       - pgsql-data:/var/lib/postgresql
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/10-create-testing-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U effecti -d teste_effecti"]
       interval: 5s
