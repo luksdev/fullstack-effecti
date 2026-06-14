@@ -1,23 +1,33 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import CurrencyInput from '@/components/CurrencyInput.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatBRL } from '@/lib/money';
 
 interface Item {
     id: string;
     service_id: string;
     service_name: string | null;
     quantity: number;
-    unit_price: string;
-    line_total: string;
+    unit_price_cents: number;
+    line_total_cents: number;
 }
 
 interface Adjustment {
     label: string;
-    amount: string;
+    amount_cents: number;
 }
 
 interface Contract {
@@ -28,16 +38,23 @@ interface Contract {
     status: { value: string; label: string };
     items: Item[];
     pricing: {
-        subtotal: string;
+        subtotal_cents: number;
         adjustments: Adjustment[];
-        total: string;
+        total_cents: number;
     };
 }
 
 const props = defineProps<{
     contract: { data: Contract } | null;
     customers: { data: { id: string; name: string }[] };
-    services: { data: { id: string; name: string; base_price: string }[] };
+    services: {
+        data: {
+            id: string;
+            name: string;
+            base_price: string;
+            base_price_cents: number;
+        }[];
+    };
     statuses: { value: string; label: string }[];
 }>();
 
@@ -70,30 +87,35 @@ function submit(): void {
     }
 }
 
+// Unit price is kept in integer cents; the CurrencyInput handles the BRL mask.
 const itemForm = useForm({
     service_id: '',
     quantity: 1,
-    unit_price: '',
+    unit_price: 0,
 });
 
 // Prefill the unit price with the selected service's base price so the field is
-// visible and editable; leaving it untouched still freezes that value on the backend.
+// visible and editable; the value sent is the one frozen on the contract item.
 watch(
     () => itemForm.service_id,
     (serviceId) => {
         const service = props.services.data.find(
             (item) => item.id === serviceId,
         );
-        itemForm.unit_price = service?.base_price ?? '';
+        itemForm.unit_price = service?.base_price_cents ?? 0;
     },
 );
 
-const itemPreviewTotal = computed(() => {
-    const price =
-        parseFloat(String(itemForm.unit_price).replace(',', '.')) || 0;
+const itemPreviewTotal = computed(() =>
+    formatBRL(itemForm.unit_price * (itemForm.quantity || 0)),
+);
 
-    return (price * (itemForm.quantity || 0)).toFixed(2);
-});
+// Live indicators for the pricing rules panel (kept in sync with the backend rules:
+// QuantityDiscountRule min 3 / 5%, ProgressiveDiscountRule 10% >= R$1000 else 5% >= R$500).
+const totalQuantity = computed(() =>
+    (record.value?.items ?? []).reduce((sum, item) => sum + item.quantity, 0),
+);
+const subtotalCents = computed(() => record.value?.pricing.subtotal_cents ?? 0);
 
 function addItem(): void {
     const current = record.value;
@@ -101,19 +123,6 @@ function addItem(): void {
     if (!current) {
         return;
     }
-
-    itemForm.transform((data) => ({
-        service_id: data.service_id,
-        quantity: data.quantity,
-        // Optional override; when blank the backend freezes the service base_price.
-        unit_price:
-            data.unit_price === '' || data.unit_price === null
-                ? null
-                : Math.round(
-                      parseFloat(String(data.unit_price).replace(',', '.')) *
-                          100,
-                  ),
-    }));
 
     itemForm.post(`/contracts/${current.id}/items`, {
         preserveScroll: true,
@@ -221,8 +230,8 @@ function removeItem(item: Item): void {
                     <tr class="border-b text-left">
                         <th class="p-2">Serviço</th>
                         <th class="p-2">Qtd.</th>
-                        <th class="p-2">Preço unit. (R$)</th>
-                        <th class="p-2">Total linha (R$)</th>
+                        <th class="p-2">Preço unit.</th>
+                        <th class="p-2">Total linha</th>
                         <th class="p-2 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -234,8 +243,12 @@ function removeItem(item: Item): void {
                     >
                         <td class="p-2">{{ item.service_name }}</td>
                         <td class="p-2">{{ item.quantity }}</td>
-                        <td class="p-2">{{ item.unit_price }}</td>
-                        <td class="p-2">{{ item.line_total }}</td>
+                        <td class="p-2">
+                            {{ formatBRL(item.unit_price_cents) }}
+                        </td>
+                        <td class="p-2">
+                            {{ formatBRL(item.line_total_cents) }}
+                        </td>
                         <td class="p-2 text-right">
                             <Button
                                 variant="destructive"
@@ -294,23 +307,20 @@ function removeItem(item: Item): void {
                     />
                     <InputError :message="itemForm.errors.quantity" />
                 </div>
-                <div class="grid gap-1">
-                    <Label for="item_price">Preço unit. (R$)</Label>
-                    <Input
+                <div class="grid w-40 gap-1">
+                    <Label for="item_price">Preço unit.</Label>
+                    <CurrencyInput
                         id="item_price"
-                        type="text"
-                        inputmode="decimal"
                         v-model="itemForm.unit_price"
-                        class="w-32"
-                        placeholder="base do serviço"
+                        placeholder="0,00"
                     />
                     <InputError :message="itemForm.errors.unit_price" />
                 </div>
                 <div class="grid gap-1">
-                    <Label>Total do item (R$)</Label>
-                    <span class="flex h-9 items-center text-sm font-medium"
-                        >R$ {{ itemPreviewTotal }}</span
-                    >
+                    <Label>Total do item</Label>
+                    <span class="flex h-9 items-center text-sm font-medium">{{
+                        itemPreviewTotal
+                    }}</span>
                 </div>
                 <Button type="submit" :disabled="itemForm.processing"
                     >Adicionar item</Button
@@ -318,10 +328,80 @@ function removeItem(item: Item): void {
             </form>
 
             <div class="flex flex-col gap-1 border-t pt-4 text-sm">
-                <h3 class="font-semibold">Resumo do preço</h3>
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold">Resumo do preço</h3>
+                    <Dialog>
+                        <DialogTrigger as-child>
+                            <Button
+                                variant="link"
+                                size="sm"
+                                class="h-auto px-0"
+                            >
+                                Como o preço é calculado?
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle
+                                    >Como o preço é calculado?</DialogTitle
+                                >
+                                <DialogDescription>
+                                    Regras aplicadas no backend sobre o
+                                    subtotal. Os descontos podem se acumular e o
+                                    total nunca é salvo — é sempre recalculado.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ul class="ml-4 list-disc space-y-3 text-sm">
+                                <li>
+                                    <strong>Desconto por quantidade:</strong> 5%
+                                    sobre o subtotal quando a soma das
+                                    quantidades dos itens é
+                                    <strong>≥ 3</strong>.
+                                    <div
+                                        :class="
+                                            totalQuantity >= 3
+                                                ? 'text-green-600'
+                                                : 'text-muted-foreground'
+                                        "
+                                    >
+                                        Neste contrato: {{ totalQuantity }} —
+                                        {{
+                                            totalQuantity >= 3
+                                                ? 'aplicado'
+                                                : 'não aplicado'
+                                        }}
+                                    </div>
+                                </li>
+                                <li>
+                                    <strong>Desconto progressivo:</strong> sobre
+                                    o subtotal — <strong>10%</strong> se ≥ R$
+                                    1.000,00; senão <strong>5%</strong> se ≥ R$
+                                    500,00 (apenas a maior faixa aplicável).
+                                    <div
+                                        :class="
+                                            subtotalCents >= 50000
+                                                ? 'text-green-600'
+                                                : 'text-muted-foreground'
+                                        "
+                                    >
+                                        Neste contrato:
+                                        {{ formatBRL(subtotalCents) }} —
+                                        {{
+                                            subtotalCents >= 100000
+                                                ? '10% aplicado'
+                                                : subtotalCents >= 50000
+                                                  ? '5% aplicado'
+                                                  : 'não aplicado'
+                                        }}
+                                    </div>
+                                </li>
+                            </ul>
+                        </DialogContent>
+                    </Dialog>
+                </div>
                 <div class="flex justify-between">
                     <span>Subtotal</span>
-                    <span>R$ {{ record.pricing.subtotal }}</span>
+                    <span>{{ formatBRL(record.pricing.subtotal_cents) }}</span>
                 </div>
                 <div
                     v-for="(adjustment, index) in record.pricing.adjustments"
@@ -329,11 +409,11 @@ function removeItem(item: Item): void {
                     class="flex justify-between text-muted-foreground"
                 >
                     <span>{{ adjustment.label }}</span>
-                    <span>R$ {{ adjustment.amount }}</span>
+                    <span>{{ formatBRL(adjustment.amount_cents) }}</span>
                 </div>
                 <div class="flex justify-between border-t pt-1 font-semibold">
                     <span>Total</span>
-                    <span>R$ {{ record.pricing.total }}</span>
+                    <span>{{ formatBRL(record.pricing.total_cents) }}</span>
                 </div>
             </div>
         </section>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useIndexFilters } from '@/composables/useIndexFilters';
+import { formatBRL } from '@/lib/money';
 import type { Paginated } from '@/types';
 
 interface Contract {
@@ -13,7 +14,7 @@ interface Contract {
     start_date: string | null;
     end_date: string | null;
     status: { value: string; label: string };
-    pricing: { total: string };
+    pricing: { total_cents: number };
 }
 
 const props = defineProps<{
@@ -88,7 +89,7 @@ function destroy(contract: Contract): void {
                     <th class="p-2">Início</th>
                     <th class="p-2">Fim</th>
                     <th class="p-2">Status</th>
-                    <th class="p-2">Total (R$)</th>
+                    <th class="p-2">Total</th>
                     <th class="p-2 text-right">Ações</th>
                 </tr>
             </thead>
@@ -103,7 +104,7 @@ function destroy(contract: Contract): void {
                     <td class="p-2">{{ contract.end_date ?? '—' }}</td>
                     <td class="p-2">{{ contract.status.label }}</td>
                     <td class="p-2 font-medium">
-                        {{ contract.pricing.total }}
+                        {{ formatBRL(contract.pricing.total_cents) }}
                     </td>
                     <td class="flex justify-end gap-2 p-2">
                         <Button variant="outline" size="sm" as-child>

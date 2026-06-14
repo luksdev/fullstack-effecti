@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import CurrencyInput from '@/components/CurrencyInput.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,18 +28,11 @@ defineOptions({
 
 const form = useForm({
     name: record?.name ?? '',
-    base_price: record?.base_price ?? '',
+    // Money is kept as integer cents end to end; the CurrencyInput handles the BRL mask.
+    base_price: record?.base_price_cents ?? 0,
 });
 
 function submit(): void {
-    // The backend stores money as integer cents; convert the reais input on the boundary.
-    form.transform((data) => ({
-        ...data,
-        base_price: Math.round(
-            parseFloat(String(data.base_price || '0').replace(',', '.')) * 100,
-        ),
-    }));
-
     if (editing && record) {
         form.put(`/services/${record.id}`);
     } else {
@@ -62,14 +56,11 @@ function submit(): void {
         </div>
 
         <div class="grid gap-2">
-            <Label for="base_price">Preço base (R$)</Label>
-            <Input
+            <Label for="base_price">Preço base</Label>
+            <CurrencyInput
                 id="base_price"
                 v-model="form.base_price"
-                type="text"
-                inputmode="decimal"
-                placeholder="0.00"
-                required
+                placeholder="0,00"
             />
             <InputError :message="form.errors.base_price" />
         </div>

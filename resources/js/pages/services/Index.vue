@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useIndexFilters } from '@/composables/useIndexFilters';
+import { formatBRL } from '@/lib/money';
 import type { Paginated } from '@/types';
 
 interface Service {
@@ -65,7 +66,7 @@ function destroy(service: Service): void {
             <thead>
                 <tr class="border-b text-left">
                     <th class="p-2">Nome</th>
-                    <th class="p-2">Preço base (R$)</th>
+                    <th class="p-2">Preço base</th>
                     <th class="p-2 text-right">Ações</th>
                 </tr>
             </thead>
@@ -76,7 +77,9 @@ function destroy(service: Service): void {
                     class="border-b"
                 >
                     <td class="p-2">{{ service.name }}</td>
-                    <td class="p-2">{{ service.base_price }}</td>
+                    <td class="p-2">
+                        {{ formatBRL(service.base_price_cents) }}
+                    </td>
                     <td class="flex justify-end gap-2 p-2">
                         <Button variant="outline" size="sm" as-child>
                             <Link :href="`/services/${service.id}/edit`"
