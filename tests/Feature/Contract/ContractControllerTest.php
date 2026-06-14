@@ -32,6 +32,32 @@ it('lists contracts with their calculated total', function () {
         );
 });
 
+it('filters contracts by customer name', function () {
+    $alpha = Customer::factory()->create(['name' => 'Alpha Tech']);
+    $beta = Customer::factory()->create(['name' => 'Beta Corp']);
+    Contract::factory()->create(['customer_id' => $alpha->id]);
+    Contract::factory()->create(['customer_id' => $beta->id]);
+
+    $this->get(route('contracts.index', ['search' => 'alpha']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('contracts.data', 1)
+            ->where('contracts.data.0.customer.name', 'Alpha Tech')
+        );
+});
+
+it('filters contracts by status', function () {
+    Contract::factory()->create();
+    Contract::factory()->cancelled()->create();
+
+    $this->get(route('contracts.index', ['status' => ContractStatus::Cancelled->value]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('contracts.data', 1)
+            ->where('contracts.data.0.status.value', 'cancelled')
+        );
+});
+
 it('creates a contract and redirects to edit', function () {
     $customer = Customer::factory()->create();
 

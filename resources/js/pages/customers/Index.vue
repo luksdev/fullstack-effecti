@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import PaginationNav from '@/components/PaginationNav.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useIndexFilters } from '@/composables/useIndexFilters';
+import type { Paginated } from '@/types';
 
 interface Customer {
     id: string;
@@ -10,8 +15,10 @@ interface Customer {
     status: { value: string; label: string };
 }
 
-defineProps<{
-    customers: { data: Customer[] };
+const props = defineProps<{
+    customers: Paginated<Customer>;
+    filters: { search: string; status: string };
+    statuses: { value: string; label: string }[];
 }>();
 
 defineOptions({
@@ -20,9 +27,14 @@ defineOptions({
     },
 });
 
+const { filters, reset } = useIndexFilters('/customers', { ...props.filters }, [
+    'customers',
+    'filters',
+]);
+
 function destroy(customer: Customer): void {
     if (confirm(`Excluir o cliente ${customer.name}?`)) {
-        router.delete(`/customers/${customer.id}`);
+        router.delete(`/customers/${customer.id}`, { preserveScroll: true });
     }
 }
 </script>
@@ -36,6 +48,36 @@ function destroy(customer: Customer): void {
             <Button as-child>
                 <Link href="/customers/create">Novo cliente</Link>
             </Button>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3 rounded-lg border p-3">
+            <div class="grid gap-1">
+                <Label for="search">Buscar</Label>
+                <Input
+                    id="search"
+                    v-model="filters.search"
+                    class="w-64"
+                    placeholder="Nome, e-mail ou documento"
+                />
+            </div>
+            <div class="grid gap-1">
+                <Label for="status">Status</Label>
+                <select
+                    id="status"
+                    v-model="filters.status"
+                    class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                    <option value="">Todos</option>
+                    <option
+                        v-for="status in statuses"
+                        :key="status.value"
+                        :value="status.value"
+                    >
+                        {{ status.label }}
+                    </option>
+                </select>
+            </div>
+            <Button variant="ghost" size="sm" @click="reset">Limpar</Button>
         </div>
 
         <table class="w-full border-collapse text-sm">
@@ -77,10 +119,12 @@ function destroy(customer: Customer): void {
                         class="p-4 text-center text-muted-foreground"
                         colspan="5"
                     >
-                        Nenhum cliente cadastrado.
+                        Nenhum cliente encontrado.
                     </td>
                 </tr>
             </tbody>
         </table>
+
+        <PaginationNav :meta="customers.meta" :links="customers.links" />
     </div>
 </template>

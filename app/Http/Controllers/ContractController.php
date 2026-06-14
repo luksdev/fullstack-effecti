@@ -14,22 +14,40 @@ use App\Models\ContractItem;
 use App\Models\Customer;
 use App\Models\Service;
 use App\Services\ContractItemService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ContractController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'status' => (string) $request->query('status', ''),
+        ];
+
         $contracts = Contract::query()
             ->with(['customer', 'contractItems.service'])
+            ->when($filters['search'], fn (Builder $query, string $search) => $query->whereHas(
+                'customer',
+                fn (Builder $customer) => $customer->where('name', 'ilike', "%{$search}%")
+            ))
+            ->when(
+                ContractStatus::tryFrom($filters['status']),
+                fn (Builder $query, ContractStatus $status) => $query->where('status', $status)
+            )
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('contracts/Index', [
             'contracts' => ContractResource::collection($contracts),
+            'filters' => $filters,
+            'statuses' => $this->statusOptions(),
         ]);
     }
 

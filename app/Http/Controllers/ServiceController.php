@@ -6,20 +6,32 @@ use App\Http\Requests\Service\StoreServiceRequest;
 use App\Http\Requests\Service\UpdateServiceRequest;
 use App\Http\Resources\ServiceResource;
 use App\Models\Service;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ServiceController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+        ];
+
         $services = Service::query()
+            ->when(
+                $filters['search'],
+                fn (Builder $query, string $search) => $query->where('name', 'ilike', "%{$search}%")
+            )
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('services/Index', [
             'services' => ServiceResource::collection($services),
+            'filters' => $filters,
         ]);
     }
 

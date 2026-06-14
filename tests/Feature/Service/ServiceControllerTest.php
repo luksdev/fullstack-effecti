@@ -22,6 +22,18 @@ it('lists services', function () {
         );
 });
 
+it('filters services by search term', function () {
+    Service::factory()->create(['name' => 'Cloud Hosting']);
+    Service::factory()->create(['name' => 'On-premise Setup']);
+
+    $this->get(route('services.index', ['search' => 'cloud']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('services.data', 1)
+            ->where('services.data.0.name', 'Cloud Hosting')
+        );
+});
+
 it('creates a service with price in cents', function () {
     $response = $this->post(route('services.store'), [
         'name' => 'Consultoria',

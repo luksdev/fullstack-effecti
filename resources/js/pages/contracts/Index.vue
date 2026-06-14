@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import PaginationNav from '@/components/PaginationNav.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useIndexFilters } from '@/composables/useIndexFilters';
+import type { Paginated } from '@/types';
 
 interface Contract {
     id: string;
@@ -11,8 +16,10 @@ interface Contract {
     pricing: { total: string };
 }
 
-defineProps<{
-    contracts: { data: Contract[] };
+const props = defineProps<{
+    contracts: Paginated<Contract>;
+    filters: { search: string; status: string };
+    statuses: { value: string; label: string }[];
 }>();
 
 defineOptions({
@@ -21,9 +28,14 @@ defineOptions({
     },
 });
 
+const { filters, reset } = useIndexFilters('/contracts', { ...props.filters }, [
+    'contracts',
+    'filters',
+]);
+
 function destroy(contract: Contract): void {
     if (confirm('Excluir este contrato?')) {
-        router.delete(`/contracts/${contract.id}`);
+        router.delete(`/contracts/${contract.id}`, { preserveScroll: true });
     }
 }
 </script>
@@ -37,6 +49,36 @@ function destroy(contract: Contract): void {
             <Button as-child>
                 <Link href="/contracts/create">Novo contrato</Link>
             </Button>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3 rounded-lg border p-3">
+            <div class="grid gap-1">
+                <Label for="search">Buscar</Label>
+                <Input
+                    id="search"
+                    v-model="filters.search"
+                    class="w-64"
+                    placeholder="Nome do cliente"
+                />
+            </div>
+            <div class="grid gap-1">
+                <Label for="status">Status</Label>
+                <select
+                    id="status"
+                    v-model="filters.status"
+                    class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                    <option value="">Todos</option>
+                    <option
+                        v-for="status in statuses"
+                        :key="status.value"
+                        :value="status.value"
+                    >
+                        {{ status.label }}
+                    </option>
+                </select>
+            </div>
+            <Button variant="ghost" size="sm" @click="reset">Limpar</Button>
         </div>
 
         <table class="w-full border-collapse text-sm">
@@ -82,10 +124,12 @@ function destroy(contract: Contract): void {
                         class="p-4 text-center text-muted-foreground"
                         colspan="6"
                     >
-                        Nenhum contrato cadastrado.
+                        Nenhum contrato encontrado.
                     </td>
                 </tr>
             </tbody>
         </table>
+
+        <PaginationNav :meta="contracts.meta" :links="contracts.links" />
     </div>
 </template>

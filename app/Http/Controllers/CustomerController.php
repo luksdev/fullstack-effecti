@@ -7,20 +7,46 @@ use App\Http\Requests\Customer\StoreCustomerRequest;
 use App\Http\Requests\Customer\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CustomerController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'status' => (string) $request->query('status', ''),
+        ];
+
         $customers = Customer::query()
+            ->when($filters['search'], function (Builder $query, string $search): void {
+                $digits = preg_replace('/\D/', '', $search);
+
+                $query->where(function (Builder $inner) use ($search, $digits): void {
+                    $inner->where('name', 'ilike', "%{$search}%")
+                        ->orWhere('email', 'ilike', "%{$search}%");
+
+                    if ($digits !== '') {
+                        $inner->orWhere('federal_document', 'like', "%{$digits}%");
+                    }
+                });
+            })
+            ->when(
+                CustomerStatus::tryFrom($filters['status']),
+                fn (Builder $query, CustomerStatus $status) => $query->where('status', $status)
+            )
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('customers/Index', [
             'customers' => CustomerResource::collection($customers),
+            'filters' => $filters,
+            'statuses' => $this->statusOptions(),
         ]);
     }
 

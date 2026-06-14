@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import PaginationNav from '@/components/PaginationNav.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useIndexFilters } from '@/composables/useIndexFilters';
+import type { Paginated } from '@/types';
 
 interface Service {
     id: string;
@@ -9,8 +14,9 @@ interface Service {
     base_price: string;
 }
 
-defineProps<{
-    services: { data: Service[] };
+const props = defineProps<{
+    services: Paginated<Service>;
+    filters: { search: string };
 }>();
 
 defineOptions({
@@ -19,9 +25,14 @@ defineOptions({
     },
 });
 
+const { filters, reset } = useIndexFilters('/services', { ...props.filters }, [
+    'services',
+    'filters',
+]);
+
 function destroy(service: Service): void {
     if (confirm(`Excluir o serviço ${service.name}?`)) {
-        router.delete(`/services/${service.id}`);
+        router.delete(`/services/${service.id}`, { preserveScroll: true });
     }
 }
 </script>
@@ -35,6 +46,19 @@ function destroy(service: Service): void {
             <Button as-child>
                 <Link href="/services/create">Novo serviço</Link>
             </Button>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3 rounded-lg border p-3">
+            <div class="grid gap-1">
+                <Label for="search">Buscar</Label>
+                <Input
+                    id="search"
+                    v-model="filters.search"
+                    class="w-64"
+                    placeholder="Nome do serviço"
+                />
+            </div>
+            <Button variant="ghost" size="sm" @click="reset">Limpar</Button>
         </div>
 
         <table class="w-full border-collapse text-sm">
@@ -72,10 +96,12 @@ function destroy(service: Service): void {
                         class="p-4 text-center text-muted-foreground"
                         colspan="3"
                     >
-                        Nenhum serviço cadastrado.
+                        Nenhum serviço encontrado.
                     </td>
                 </tr>
             </tbody>
         </table>
+
+        <PaginationNav :meta="services.meta" :links="services.links" />
     </div>
 </template>

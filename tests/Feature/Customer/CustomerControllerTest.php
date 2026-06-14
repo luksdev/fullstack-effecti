@@ -23,6 +23,30 @@ it('lists customers', function () {
         );
 });
 
+it('filters customers by search term', function () {
+    Customer::factory()->create(['name' => 'Alpha Tech', 'email' => 'alpha@example.com']);
+    Customer::factory()->create(['name' => 'Beta Corp', 'email' => 'beta@example.com']);
+
+    $this->get(route('customers.index', ['search' => 'alpha']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('customers.data', 1)
+            ->where('customers.data.0.name', 'Alpha Tech')
+        );
+});
+
+it('filters customers by status', function () {
+    Customer::factory()->create(['status' => CustomerStatus::Active]);
+    Customer::factory()->inactive()->create();
+
+    $this->get(route('customers.index', ['status' => CustomerStatus::Inactive->value]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('customers.data', 1)
+            ->where('customers.data.0.status.value', 'inactive')
+        );
+});
+
 it('creates a customer with a masked document', function () {
     $response = $this->post(route('customers.store'), [
         'name' => 'Acme Ltda',
