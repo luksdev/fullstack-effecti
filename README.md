@@ -13,7 +13,7 @@ uma API REST em JSON.
 - PostgreSQL 18
 - Laravel Fortify (autenticação) e Sanctum (scaffolding de API)
 - Pest 4 (testes) e Laravel Pint (formatação)
-- Docker / Docker Compose (Postgres 18, Node 24)
+- Docker / Docker Compose (Postgres 18, Node 22)
 
 ## Funcionalidades
 
@@ -44,14 +44,14 @@ Mapeadas ao enunciado e conferidas no código:
 Pré-requisito: Docker.
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 No primeiro boot o container `app` cria o `.env` (a partir do `.env.example`),
 roda `composer install`, gera a `APP_KEY` (se vazia), aplica as migrations e o
-seeder e sobe o servidor. O container `vite` instala as dependências do front e
-sobe o dev server. **O primeiro boot demora** por causa do `composer install` e
-do `npm install`.
+seeder e sobe o servidor. O container `vite` espera o `app` terminar, instala as
+dependências do front e sobe o dev server. **O primeiro boot demora** por causa
+do `composer install` e do `npm install`.
 
 - App: http://localhost:8000 (a raiz redireciona para a tela de login)
 - Vite (dev server): http://localhost:5173
