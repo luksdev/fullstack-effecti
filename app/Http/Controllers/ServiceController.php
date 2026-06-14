@@ -23,7 +23,7 @@ class ServiceController extends Controller
         $services = Service::query()
             ->when(
                 $filters['search'],
-                fn (Builder $query, string $search) => $query->where('name', 'ilike', "%{$search}%")
+                fn (Builder $query, string $search) => $query->whereRaw('lower(name) like ?', ['%'.mb_strtolower($search).'%'])
             )
             ->latest()
             ->paginate(15)

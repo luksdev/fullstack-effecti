@@ -24,11 +24,12 @@ class CustomerController extends Controller
 
         $customers = Customer::query()
             ->when($filters['search'], function (Builder $query, string $search): void {
+                $term = '%'.mb_strtolower($search).'%';
                 $digits = preg_replace('/\D/', '', $search);
 
-                $query->where(function (Builder $inner) use ($search, $digits): void {
-                    $inner->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%");
+                $query->where(function (Builder $inner) use ($term, $digits): void {
+                    $inner->whereRaw('lower(name) like ?', [$term])
+                        ->orWhereRaw('lower(email) like ?', [$term]);
 
                     if ($digits !== '') {
                         $inner->orWhere('federal_document', 'like', "%{$digits}%");

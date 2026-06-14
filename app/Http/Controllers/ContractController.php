@@ -34,7 +34,7 @@ class ContractController extends Controller
             ->with(['customer', 'contractItems.service'])
             ->when($filters['search'], fn (Builder $query, string $search) => $query->whereHas(
                 'customer',
-                fn (Builder $customer) => $customer->where('name', 'ilike', "%{$search}%")
+                fn (Builder $customer) => $customer->whereRaw('lower(name) like ?', ['%'.mb_strtolower($search).'%'])
             ))
             ->when(
                 ContractStatus::tryFrom($filters['status']),
